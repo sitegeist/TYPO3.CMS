@@ -2792,7 +2792,6 @@ class DataHandler implements LoggerAwareInterface
                 }
             }
         }
-
         return $newValue;
     }
 
@@ -2813,15 +2812,29 @@ class DataHandler implements LoggerAwareInterface
         int $uid,
         int $pid
     ): Statement {
+        /**
+         * @var QueryBuilder $queryBuilder
+         */
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
         $this->addDeleteRestriction($queryBuilder->getRestrictions()->removeAll());
         $queryBuilder
             ->count('uid')
             ->from($table)
             ->where(
-                $queryBuilder->expr()->eq($field, $queryBuilder->createPositionalParameter($value, \PDO::PARAM_STR)),
+                $queryBuilder->expr()->eq(
+                    $field,
+                    $queryBuilder->createPositionalParameter($value, \PDO::PARAM_STR)
+                ),
                 $queryBuilder->expr()->neq('uid', $queryBuilder->createPositionalParameter($uid, \PDO::PARAM_INT))
             );
+        if ((string)$GLOBALS['TCA'][$table]['columns'][$field]['l10n_mode'] === 'exclude') {
+            $queryBuilder->andWhere(
+                $queryBuilder->expr()->neq(
+                    'l10n_parent',
+                    $queryBuilder->createPositionalParameter($uid, \PDO::PARAM_INT)
+                )
+            );
+        }
         if ($pid !== 0) {
             $queryBuilder->andWhere(
                 $queryBuilder->expr()->eq('pid', $queryBuilder->createPositionalParameter($pid, \PDO::PARAM_INT))

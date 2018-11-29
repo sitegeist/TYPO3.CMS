@@ -461,8 +461,16 @@ class PageRepository implements LoggerAwareInterface
                 $queryBuilder->expr()->eq('alias', $queryBuilder->createNamedParameter($alias, \PDO::PARAM_STR)),
                 // "AND pid>=0" because of versioning (means that aliases sent MUST be online!)
                 $queryBuilder->expr()->gte('pid', $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT))
-            )
-            ->setMaxResults(1)
+            );
+        // Only search in records which aren't translations because aliases in translated pages match the
+        // alias of their language parent (l10n_mode=exclude).
+        // We are explicitly checking the TCA setting because it might have been overridden by third-party code
+        if ((string)$GLOBALS['TCA']['pages']['columns']['alias']['l10n_mode'] === 'exclude') {
+            $row = $row->andWhere(
+                $queryBuilder->expr()->eq('l10n_parent', 0)
+            );
+        }
+        $row = $row->setMaxResults(1)
             ->execute()
             ->fetch();
 

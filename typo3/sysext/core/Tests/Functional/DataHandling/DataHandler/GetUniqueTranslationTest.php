@@ -39,4 +39,42 @@ class GetUniqueTranslationTest extends AbstractDataHandlerActionTestCase
         $this->assertEquals('datahandler', $originalLanguageRecord['alias']);
         $this->assertEquals('datahandler', $translatedRecord['alias']);
     }
+
+    /**
+     * @test
+     */
+    public function valueOfUniqueFieldExcludedInTranslationIsUntouchedInOriginalLanguage(): void
+    {
+        $map = $this->actionService->localizeRecord('pages', self::PAGE_DATAHANDLER, 1);
+        $newPageId = $map['pages'][self::PAGE_DATAHANDLER];
+        $translatedRecord = BackendUtility::getRecord('pages', $newPageId);
+        $this->actionService->modifyRecord('pages', self::PAGE_DATAHANDLER, [
+            'title' => 'DataHandlerTest changed',
+            'alias' => 'datahandler'
+        ]);
+        $originalLanguageRecord = BackendUtility::getRecord('pages', self::PAGE_DATAHANDLER);
+
+        $this->assertEquals('DataHandlerTest changed', $originalLanguageRecord['title']);
+        $this->assertEquals('datahandler', $originalLanguageRecord['alias']);
+        $this->assertEquals('datahandler', $translatedRecord['alias']);
+    }
+
+    /**
+     * @test
+     */
+    public function valueOfUniqueFieldExcludedInTranslationIsIncrementedInNewOriginalRecord(): void
+    {
+        $originalLanguageRecord = BackendUtility::getRecord('pages', self::PAGE_DATAHANDLER);
+        $map = $this->actionService->createNewRecord('pages', -self::PAGE_DATAHANDLER, [
+            'title' => 'New Page',
+            'doktype' => 1,
+        ]);
+        $newPageId = $map['pages'][0];
+        $this->actionService->modifyRecord('pages', $newPageId, [
+            'alias' => 'datahandler'
+        ]);
+        $newRecord = BackendUtility::getRecord('pages', $newPageId);
+        $this->assertEquals('datahandler', $originalLanguageRecord['alias']);
+        $this->assertEquals('datahandler0', $newRecord['alias']);
+    }
 }
